@@ -1,0 +1,26 @@
+{
+  "Comment": "Calculates the lead and cycle times of each Agile Release Train",
+  "StartAt": "Load Art Configuration",
+  "States": {
+       "Load Art Configuration":{
+            "Comment": "Load art configuration from DB",
+            "Type": "Task",
+            "Resource": "${GetARTConfigurationLambdaFunctionArn}",
+            "Next": "Calculate Pipeline Efficiency"
+        },
+      "Calculate Pipeline Efficiency":{
+          "Comment": "Calculate min max and average",
+          "Type": "Task",
+          "Resource": "${CalculatePipelineEfficiencyLambdaFunctionArn}",
+          "InputPath": "$.config",
+          "Next": "Save Art Pipeline Efficiency"
+      },
+      "Save Art Pipeline Efficiency":{
+          "Comment": "Save pipeline eficiency in DB",
+          "Type": "Task",
+          "Resource": "${SaveArtPipelineEfficiencyLambdaFunctionArn}",
+          "InputPath": "$.efficiency",
+          "End": true
+      }
+  }
+}

@@ -1,0 +1,7 @@
+CREATE TABLE agile_release_trains(
+    ID BIGINT PRIMARY KEY AUTO_INCREMENT,
+    Name VARCHAR(255) UNIQUE NOT NULL,
+    Abbreviation VARCHAR(10) UNIQUE NOT NULL,
+    JiraProgramLevelKey VARCHAR(20) UNIQUE NOT NULL,
+    JiraTeamLevelKey VARCHAR(20) UNIQUE NOT NULL
+);

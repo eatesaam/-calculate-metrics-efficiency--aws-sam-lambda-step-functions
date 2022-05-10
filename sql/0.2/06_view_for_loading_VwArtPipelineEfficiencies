@@ -1,0 +1,21 @@
+CREATE VIEW `VwArtPipelineEfficiencies` AS
+    SELECT 
+        `art`.`ID` AS `ArtID`,
+        `art`.`Name` AS `ArtName`,
+        `art`.`Abbreviation` AS `ArtAbbreviation`,
+        `efficiency`.`ID` AS `EfficiencyID`,
+        `efficiency`.`Minimum`,
+        `efficiency`.`Average`,
+        `efficiency`.`Maximum`,
+        `efficiency`.`Date` AS `PipelineEfficiencyDate`,
+        `efficiency`.`IssueKeys`,
+        `efficiency`.`MinIssueKey`,
+        `efficiency`.`MaxIssueKey`,
+        `configuration`.`Name` AS `ConfigurationName`,
+        `configuration`.`Code` AS `ConfigurationCode`
+    FROM
+        `art_pipeline_efficiencies` `efficiency`
+            JOIN
+        `agile_release_trains` `art` ON `efficiency`.`ArtID` = `art`.`ID`
+            JOIN
+        `art_pipeline_efficiency_configurations` `configuration` ON `efficiency`.`ArtPipelineEfficiencyConfigurationID` = `configuration`.`ID`;

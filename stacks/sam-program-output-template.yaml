@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  ProgramApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+  CalculateARTPipelineEfficiencyStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri:
+        Bucket: st-lambda-artifacts
+        Key: 5e3186d14792d2b3c0d0b52ff3edaff8
+      DefinitionSubstitutions:
+        GetAllARTsLambdaFunctionArn:
+          Fn::GetAtt:
+          - GetAllARTsLambdaFunction
+          - Arn
+        GetARTConfigurationLambdaFunctionArn:
+          Fn::GetAtt:
+          - GetARTConfigurationLambdaFunction
+          - Arn
+        CalculatePipelineEfficiencyLambdaFunctionArn:
+          Fn::GetAtt:
+          - CalculatePipelineEfficiencyLambdaFunction
+          - Arn
+        SaveArtPipelineEfficiencyLambdaFunctionArn:
+          Fn::GetAtt:
+          - SaveArtPipelineEfficiencyLambdaFunction
+          - Arn
+      Policies:
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: GetARTConfigurationLambdaFunction
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: CalculatePipelineEfficiencyLambdaFunction
+      - LambdaInvokePolicy:
+          FunctionName:
+            Ref: SaveArtPipelineEfficiencyLambdaFunction
+  GetAllARTsLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 30
+      Handler: index.lambda_handler
+      CodeUri: s3://st-lambda-artifacts/eb58f2543f5aadba502f1f83c8c93a8b
+      Layers:
+      - Ref: ProgramLambdaLayer
+      Environment:
+        Variables:
+          SAFE_METRICS_DB_SECRET_NAME: safe-metrics-db
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /art
+            Method: get
+            RestApiId:
+              Ref: ProgramApiGateway
+      Policies:
+      - Statement:
+        - Sid: ReadSecretsFromSecretManager
+          Effect: Allow
+          Action:
+          - secretsManager:GetSecretValue
+          Resource: '*'
+  GetAllARTPipelineEfficiencyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 30
+      Handler: index.lambda_handler
+      CodeUri: s3://st-lambda-artifacts/d131b5a38ba7e3e9c8921852355967d0
+      Layers:
+      - Ref: ProgramLambdaLayer
+      Environment:
+        Variables:
+          SAFE_METRICS_DB_SECRET_NAME: safe-metrics-db
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /art/{art_abbreviation}/pipeline/efficiency
+            Method: get
+            RestApiId:
+              Ref: ProgramApiGateway
+      Policies:
+      - Statement:
+        - Sid: ReadSecretsFromSecretManager
+          Effect: Allow
+          Action:
+          - secretsManager:GetSecretValue
+          Resource: '*'
+  GetARTConfigurationLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 30
+      Handler: index.lambda_handler
+      CodeUri: s3://st-lambda-artifacts/e0500d72fb63a91d2fa5a801822cef5b
+      Layers:
+      - Ref: ProgramLambdaLayer
+      Environment:
+        Variables:
+          SAFE_METRICS_DB_SECRET_NAME: safe-metrics-db
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /config
+            Method: get
+            RestApiId:
+              Ref: ProgramApiGateway
+      Policies:
+      - Statement:
+        - Sid: ReadSecretsFromSecretManager
+          Effect: Allow
+          Action:
+          - secretsManager:GetSecretValue
+          Resource: '*'
+  CalculatePipelineEfficiencyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 70
+      Handler: index.lambda_handler
+      CodeUri: s3://st-lambda-artifacts/33065e764acde79201718aedbc3df2e2
+      Layers:
+      - Ref: ProgramLambdaLayer
+      Environment:
+        Variables:
+          JIRA_CREDENTIALS_SECRET_NAME: jira-api-credentials
+      Policies:
+      - Statement:
+        - Sid: ReadSecretsFromSecretManager
+          Effect: Allow
+          Action:
+          - secretsManager:GetSecretValue
+          Resource: '*'
+  SaveArtPipelineEfficiencyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Timeout: 50
+      Handler: index.lambda_handler
+      CodeUri: s3://st-lambda-artifacts/baf6bbf87acdc5ff1a436e40d9639d2c
+      Layers:
+      - Ref: ProgramLambdaLayer
+      Environment:
+        Variables:
+          SAFE_METRICS_DB_SECRET_NAME: safe-metrics-db
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /art/pipe
+            Method: post
+            RestApiId:
+              Ref: ProgramApiGateway
+      Policies:
+      - Statement:
+        - Sid: ReadSecretsFromSecretManager
+          Effect: Allow
+          Action:
+          - secretsManager:GetSecretValue
+          Resource: '*'
+  ProgramLambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: program-lambda-layer
+      Description: Packages for Program Stack
+      ContentUri: s3://st-lambda-artifacts/80f05d7aedb653064c59c36ebcd462e3
+      CompatibleRuntimes:
+      - python3.8
+Outputs:
+  ApiGatewayEndpoint:
+    Description: Program API Gateway Endpoint
+    Value:
+      Fn::Sub: https://${ProgramApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/
